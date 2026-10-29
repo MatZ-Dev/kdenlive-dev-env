@@ -1,0 +1,72 @@
+{
+  "name": "kdenlive arch-env",
+
+  // The image is built out of band (make build / docker compose build) from
+  // docker/arch-env/Dockerfile, so this only consumes it.
+  "image": "kdenlive-arch-env:latest",
+
+  // Source is mounted at its own host path. The 1:1 mapping is what lets gdb's
+  // reported paths resolve on the host with no source-path mapping, and it also
+  // covers the in-source build dir.
+  "workspaceFolder": "/home/mz/work/projects/kde-dev/kdenlive",
+  "workspaceMount": "type=bind,source=/home/mz/work/projects/kde-dev/kdenlive,target=/home/mz/work/projects/kde-dev/kdenlive",
+
+  // Deliberately NOT mounting /tmp/.X11-unix: Qt Creator adds its own X11
+  // socket mount plus an xauth cookie, and a second one makes the container
+  // fail to create with "Duplicate mount point".
+  "mounts": [
+    "type=bind,source=/home/mz/.cache/ccache-kdenlive,target=/home/mz/.cache/ccache-kdenlive",
+    "type=bind,source=/run/user/1000/pulse,target=/run/user/1000/pulse"
+  ],
+
+  "runArgs": [
+    "--network=host",
+    "--cap-add=SYS_PTRACE",
+    "--security-opt", "seccomp=unconfined"
+  ],
+
+  "remoteUser": "mz",
+
+  "containerEnv": {
+    "CCACHE_DIR": "/home/mz/.cache/ccache-kdenlive",
+    "XDG_RUNTIME_DIR": "/run/user/1000",
+    "PULSE_SERVER": "unix:/run/user/1000/pulse/native",
+    "DBUS_SESSION_BUS_ADDRESS": "unix:path=/tmp/kdenlive-bus"
+  },
+
+  // Kdenlive exits 1 silently without a session bus, and the host bus is
+  // refused by AppArmor. A fixed address lets both Run and Debug just set
+  // DBUS_SESSION_BUS_ADDRESS; dbus-run-session is unusable under gdb because
+  // it forks rather than exec'ing.
+  "postStartCommand": "dbus-daemon --session --address=unix:path=/tmp/kdenlive-bus --fork",
+
+  "customizations": {
+    "qt-creator": {
+      // Explicit kit instead of detection: on Arch, /bin, /sbin, /usr/sbin and
+      // /usr/bin are the same directory, so scanning PATH registers every tool
+      // four times and the kit can bind to an alias Qt Creator then rejects.
+      "auto-detect-kits": false,
+      "kits": [
+        {
+          "name": "kdenlive arch-env (Docker)",
+          "qt": "/usr/bin/qmake6",
+          "compiler": {
+            "C": "/usr/lib/ccache/bin/gcc",
+            "Cxx": "/usr/lib/ccache/bin/g++"
+          },
+          "cmake": {
+            "binary": "/usr/bin/cmake",
+            "generator": "Ninja"
+          },
+          "debugger": "/usr/bin/gdb"
+        }
+      ],
+      "device": {
+        "mount-libexec": true,
+        "libexec-mount-point": "/devcontainer/libexec",
+        "copy-cmd-bridge": false,
+        "run-processes-in-terminal": false
+      }
+    }
+  }
+}

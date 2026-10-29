@@ -1,0 +1,27 @@
+services:
+  kdenlive-arch-env:
+    image: kdenlive-arch-env
+    build: docker/arch-env
+    stdin_open: true
+    tty: true
+    user: "${UID}:${GID}"
+    working_dir: ${SRC}
+    # gdb needs ptrace. Mirrors Qt Creator's "Enable flags needed for LLDB".
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+    environment:
+      DISPLAY: ${DISPLAY}
+      # Mounted 1:1 so the same value works in Qt Creator, which cannot
+      # remap paths to a different location inside the container.
+      CCACHE_DIR: ${CCACHE}
+      XDG_RUNTIME_DIR: /run/user/${UID}
+      PULSE_SERVER: unix:/run/user/${UID}/pulse/native
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${SRC}:${SRC}
+      - ${BUILD}:${BUILD}
+      - ${CCACHE}:${CCACHE}
+      - /run/user/${UID}/pulse:/run/user/${UID}/pulse
+    command: bash

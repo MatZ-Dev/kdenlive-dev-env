@@ -1,0 +1,22 @@
+# Machine-local config: absolute paths plus UID/GID, read by docker-compose.
+# Without it compose substitutes blank strings (user: ':'), so a fresh clone
+# needs its own copy. See README.
+.env
+
+# Build output, if you ever configure a build tree in here again
+build/
+build-*/
+install/
+
+# Qt Creator / IDE state
+*.user
+*.user.*
+CMakeLists.txt.user*
+.qtc_clangd/
+.vscode/
+.idea/
+
+# Editor and desktop cruft
+*~
+*.swp
+.directory
